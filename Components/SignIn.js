@@ -6,7 +6,10 @@ import {
     AsyncStorage,
     Alert,
     Text,
-	ActivityIndicator } from 'react-native'
+    ActivityIndicator 
+} from 'react-native'
+import _APIsignIn from '../API/signin'
+
 
 class SignIn extends React.Component {
     constructor(props){
@@ -84,6 +87,9 @@ class SignIn extends React.Component {
         if (this.state.errorMessage=='pwdIsEmpty') {
             message = 'Password cannot be blank.'
         }
+        if (this.state.errorMessage=='wrongCredentials') {
+            message = 'Wrong Email or Password'
+        }
 
         return(
             <Text style= {{color: '#9e1818'}}>{message}</Text>
@@ -120,7 +126,7 @@ class SignIn extends React.Component {
             this.setState({errorMessage: 'pwdIsEmpty'})            
         }
     }
-    
+
 	_goToSignUp = () => {
         this.props.navigation.navigate('SignUp')
     }
@@ -132,8 +138,18 @@ class SignIn extends React.Component {
         } else if (this.state.errorMessage !== '') {
             console.log('Cannot sign up !')
         } else {
-            await AsyncStorage.setItem('userToken', 'abc');
-            this.props.navigation.navigate('App');
+            _APIsignIn(
+                this.state.email,
+                this.state.password
+                ).then( async (res) => {
+                    if (res.success) { // si on a le droit de se connecter
+                        await AsyncStorage.setItem('userToken', res.token);
+                        console.log('logged with token: ' + res.token)
+                        this.props.navigation.navigate('App');
+                    } else {
+                        this.setState({errorMessage: 'wrongCredentials'}) //le seul cas pas gere ici c'est avec un mauvais email mais c'est pris en compte dans le server qui renvoie une erreur
+                    }
+                })          
         }
     };
 }
@@ -154,14 +170,18 @@ const styles = {
         paddingLeft: 12
     },
     error: {
-        flex: 0.3,
+        flex: 0.5,
         marginTop: 50,
-        alignItems: 'center'
+        alignItems: 'center',
+        justifyContent: 'center',
+        //backgroundColor: '#AAAAAA'
     },
     buttons: {
-        flex:0.6,
+        flex:0.5,
         flexDirection: 'column-reverse',
-        marginTop: 20
+        marginTop: 20,
+        //backgroundColor: '#BBBBBB'
+
     },
     button:{
         marginTop: 50

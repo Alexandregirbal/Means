@@ -7,6 +7,7 @@ import {
     TextInput,
     StyleSheet
 } from 'react-native'
+import _APIsignUp from '../API/signup'
 
 class SignUp extends React.Component {
     constructor(props){
@@ -14,6 +15,8 @@ class SignUp extends React.Component {
         this.state = {
             isLoading : false,
             errorMessage: '',
+            firstName: '',
+            lastName: '',
             email: '',
             password: '',
             confirmPwd: ''
@@ -28,8 +31,24 @@ class SignUp extends React.Component {
         return(
             <View style={styles.container}>
                 <View style={styles.globalForm}>
+                <View style={styles.form}>
+                        <Text>Enter your first name:</Text>
+                        <TextInput 
+                            style={styles.textinput} 
+                            placeholder='Email'
+                            onChangeText={(e) => this._setFirstName(e)}
+                        />
+                    </View>
+                <View style={styles.form}>
+                        <Text>Enter your last name:</Text>
+                        <TextInput 
+                            style={styles.textinput} 
+                            placeholder='Email'
+                            onChangeText={(e) => this._setLastName(e)}
+                        />
+                    </View>
                     <View style={styles.form}>
-                        <Text>Enter a valid email here:</Text>
+                        <Text>Enter a valid email:</Text>
                         <TextInput 
                             style={styles.textinput} 
                             placeholder='Email'
@@ -85,7 +104,9 @@ class SignUp extends React.Component {
         if (this.state.errorMessage=='pwdIsEmpty') {
             message = 'Passwords cannot be blank.'
         }
-
+        if (this.state.errorMessage=='serverErrorWrongEmail') {
+            message = 'Wrong email.'
+        }
         return(
             <Text style= {{color: '#9e1818'}}>{message}</Text>
         )
@@ -116,6 +137,18 @@ class SignUp extends React.Component {
         })
     }
 
+    _setFirstName(e) {
+        this.setState({
+            firstName: e
+        })
+    }
+
+    _setLastName(e) {
+        this.setState({
+            lastName: e
+        })
+    }
+
     _setConfirmPwd(e) {
         if (this.state.password !== e){
             this.setState({errorMessage: 'confirmPwdIsWrong'})
@@ -135,8 +168,20 @@ class SignUp extends React.Component {
         } else if (this.state.errorMessage !== '') {
             console.log('Cannot sign up !')
         } else {
-            await AsyncStorage.setItem('userToken', 'abc');
-            this.props.navigation.navigate('App');
+            _APIsignUp(
+                this.state.email,
+                this.state.password,
+                this.state.confirmPwd,
+                this.state.firstName,
+                this.state.lastName
+                ).then( async (res) => {
+                    if (res.success) { // si res n'est pas false
+                        await AsyncStorage.setItem('userToken', res.token); // on stock le token de la db dans la memoire du tel
+                        this.props.navigation.navigate('App'); // puis on va vers l'app
+                    } else {
+                        this.setState({errorMessage: 'serverErrorWrongEmail'}) //le seul cas pas gere ici c'est avec un mauvais email, mais c'est pris en compte dans le server, qui renvoie une erreur
+                    }
+                })
         }
     };
 }
@@ -150,11 +195,11 @@ const styles = StyleSheet.create({
         marginTop: 20,
         flex: 0.9,
     },form: {
-        flex: 0.33,
+        flex: 0.20,
         justifyContent: 'center'
     },
     textinput: {
-        flex: 0.7,
+        flex: 0.8,
         marginTop: 20,
         marginBottom: 10,
         height: 50,
@@ -163,7 +208,7 @@ const styles = StyleSheet.create({
         paddingLeft: 12
     },
     error: {
-        flex: 0.5,
+        flex: 0.2,
         marginTop: 25,
         alignItems: 'center'
     },
